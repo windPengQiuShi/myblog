@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from .models import ArticlePost
+from .models import ArticlePost, ArticleColumn
 from .forms import ArticlePostForm
 from django.contrib.auth.models import User
 import markdown
@@ -85,6 +85,8 @@ def article_create(request):
         article_post_form = ArticlePostForm(request.POST, request.FILES)
         if article_post_form.is_valid():
             new_article = article_post_form.save(commit=False)
+            if request.POST['column'] != 'none':
+                new_article.column = ArticleColumn.objects.get(id=request.POST['column'])
             new_article.author = User.objects.get(id=request.user.id)
             new_article.save()
             article_post_form.save_m2m()
@@ -95,7 +97,8 @@ def article_create(request):
         # 创建表单类实例
         article_post_form = ArticlePostForm()
         # 赋值上下文
-        context = {'article_post_form': article_post_form}
+        columns = ArticleColumn.objects.all()
+        context = {'article_post_form': article_post_form, 'columns': columns}
         # 返回模板
         return render(request, 'article/create.html', context)
 
@@ -104,15 +107,22 @@ def article_create(request):
 def article_delete(request, id):
     # 根据 id 获取需要删除的文章
     article = ArticlePost.objects.get(id=id)
+    # 过滤非作者的用户
+    if request.user != article.author:
+        return HttpResponse("抱歉，你无权修改这篇文章。")
     # 调用.delete()方法删除文章
     article.delete()
     # 完成删除后返回文章列表
     return redirect("article:article_list")
 
 
+# 安全删除文章
+@login_required(login_url='/userprofile/login/')
 def article_safe_delete(request, id):
     if request.method == 'POST':
         article = ArticlePost.objects.get(id=id)
+        if request.user != article.author:
+            return HttpResponse("抱歉，你无权修改这篇文章。")
         article.delete()
         return redirect("article:article_list")
     else:
@@ -131,6 +141,10 @@ def article_update(request, id):
 
     # 获取需要修改的具体文章对象
     article = ArticlePost.objects.get(id=id)
+
+    # 过滤非作者的用户
+    if request.user != article.author:
+        return HttpResponse("抱歉，你无权修改这篇文章。")
     # 判断用户是否为 POST 提交表单数据
     if request.method == "POST":
         # 将提交的数据赋值到表单实例中
@@ -143,6 +157,10 @@ def article_update(request, id):
             article.title = request.POST['title']
             article.body = request.POST['body']
             article.tags.set(*request.POST.get('tags').split(','), clear=True)
+            if request.POST['column'] != 'none':
+                article.column = ArticleColumn.objects.get(id=request.POST['column'])
+            else:
+                article.column = None
             article.save()
             # 完成后返回到修改后的文章中。需传入文章的 id 值
             return redirect("article:article_detail", id=id)
