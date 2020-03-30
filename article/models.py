@@ -9,6 +9,7 @@ from django.urls import reverse
 from taggit.managers import TaggableManager
 from PIL import Image
 from ckeditor.fields import RichTextField
+from ckeditor_uploader.fields import RichTextUploadingField
 
 class ArticleColumn(models.Model):
     """
@@ -33,7 +34,7 @@ class ArticlePost(models.Model):
     title = models.CharField(max_length=100)
 
     # 文章正文。保存大量文本使用 TextField
-    body = RichTextField()
+    body = RichTextUploadingField()
 
     # 文章创建时间。参数 default=timezone.now 指定其在创建数据时将默认写入当前的时间
     created = models.DateTimeField(default=timezone.now)
@@ -50,7 +51,7 @@ class ArticlePost(models.Model):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name='article',
+        related_name='article'
     )
     class Meta:
             ordering = ('-created',)
