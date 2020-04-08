@@ -15,7 +15,7 @@
 <!-- 文章详情 -->
 <div class="container">
     <div class="row">
-        <div class="col-10">
+        <div class="col-9">
             <!-- 标题及作者 -->
             <h1 class="mt-4 mb-4">{{ article.title }}</h1>
             <div class="alert alert-success">
@@ -48,38 +48,83 @@
         <div class="col-12">
             <p>{{ article.body|safe}}</p>
         </div>
- <hr>
-    {% if user.is_authenticated %}
-        <div>
-            <form
-                action="{% url 'comment:post_comment' article.id %}"
-                method="POST"
-            >
-            {% csrf_token %}
-                <div class="form-group">
-                    <label for="body">
-                        <strong>
-                            我也要发言：
-                        </strong>
-                    </label>
-                <div>
-                    {{ comment_form.media }}
-                    {{ comment_form.body }}
-                </div>
-                </div>
-                <!-- 提交按钮 -->
-                <button type="submit" class="btn btn-primary ">发送</button>
-            </form>
-        </div>
-        <br>
-    {% else %}
-        <br>
-        <h5 class="row justify-content-center">
-            请<a href="{% url 'userprofile:login' %}">登录</a>后回复
-        </h5>
-        <br>
-    {% endif %}
+            <!-- 点赞 -->
+            <div style="text-align:center;" class="mt-4">
+                <button class="btn btn-outline-danger"
+                        type="button"
+                        onclick="validate_is_like(
+                                '{% url 'article:increase_likes' article.id %}',
+                                {{ article.id }},
+                                {{ article.likes }}
+                            )"
+                >
+                    <span>点赞</span>
+                    <span>
+                        <i class="fas fa-heart"></i>
+                    </span>
+                    <span id="likes_number">
+                        {{ article.likes }}
+                    </span>
+                </button>
+            </div>
 
+            <!-- 相邻文章导航 -->
+            <br>
+            <div class="row justify-content-end">
+                {% if next_article %}
+                <div class="col-auto mr-auto">
+                    <a  href="{{ next_article.get_absolute_url }}" 
+                        class="btn btn-info"
+                        >
+                        {{ next_article.title }}
+                    </a>
+                </div>
+                {% endif %}
+            {% if pre_article %}
+                <div class="col-auto">
+                    <a  href="{{ pre_article.get_absolute_url }}" 
+                    class="btn btn-info" 
+                    >
+                        {{ pre_article.title }}
+                    </a>
+                </div>
+            {% endif %}
+            </div>
+
+
+            <!-- 发表评论 -->
+            <hr>
+            {% if user.is_authenticated %}
+                <div>
+                    <form 
+                        action="{% url 'comment:post_comment' article.id %}" 
+                        method="POST"
+                    >
+                    {% csrf_token %}
+                        <div class="form-group">
+                            <label for="body">
+                                <strong>
+                                    我也要发言：
+                                </strong>
+                            </label>
+                            <div>
+                                {{ comment_form.media }}
+                                {{ comment_form.body }}
+                            </div>
+                        </div>
+                        <!-- 提交按钮 -->
+                        <button type="submit" class="btn btn-primary ">发送</button>
+                    </form>
+                </div>
+                <br>
+            {% else %}
+                <br>
+                <h5 class="row justify-content-center">
+                    请<a href="{% url 'userprofile:login' %}">登录</a>后回复
+                </h5>
+                <br>
+            {% endif %}
+            
 
 
 {% load mptt_tags %}
@@ -169,7 +214,6 @@
 </div>
 </div>
         <!-- 目录 -->
-        <!--
         <div class="col-3 mt-4" id="sidebar" class="sidebar">
             <div class="sidebar__inner">
                 <h4><strong>目录</strong></h4>
@@ -179,13 +223,25 @@
                 </div>
             </div>
         </div>
-        -->
     </div>
 </div>
 
+<!-- 粘性侧边栏样式 -->
+<style>
+    .sidebar{
+        will-change: min-height;
+    }
+
+    .sidebar__inner{
+        transform: translate(0, 0); /* For browsers don't support translate3d. */
+        transform: translate3d(0, 0, 0);
+        will-change: position, transform;
+    }
+</style>
+
 <script>
     // 删除文章的函数
-    function confirm_safe_delete() {
+    function confirm_delete() {
         // 调用layer弹窗组件
         layer.open({
             // 弹窗标题
@@ -194,15 +250,108 @@
             content: "确认删除这篇文章吗？",
             // 点击确定按钮后调用的回调函数
             yes: function(index, layero) {
+                // 指定应当前往的 url
+                location.href='{% url "article:article_delete" article.id %}'
+            },
+        })
+    }
+
+    function confirm_safe_delete() {
+        layer.open({
+            title: "确认删除",
+            content: "确认删除这篇文章吗？",
+            yes: function(index, layero) {
                 $('form#safe_delete button').click();
                 layer.close(index);
-            },
+            }
         })
     }
 </script>
 {% endblock content %}
 
 {% block script %}
+
+<!-- csrf token -->
+<script src="{% static 'csrf.js' %}"></script>
+<script>
+    // 点赞功能主函数
+    function validate_is_like(url, id, likes) {
+        // 取出 LocalStorage 中的数据
+        let storage = window.localStorage;
+        const storage_str_data = storage.getItem("my_blog_data");
+        let storage_json_data = JSON.parse(storage_str_data);
+        // 若数据不存在，则创建空字典
+        if (!storage_json_data) {
+            storage_json_data = {}
+        };
+        // 检查当前文章是否已点赞。是则 status = true
+        const status = check_status(storage_json_data, id);
+        if (status) {
+            layer.msg('已经点过赞了哟~');
+            // 点过赞则立即退出函数
+            return;
+        } else {
+            // 用 Jquery 找到点赞数量，并 +1
+            $('span#likes_number').text(likes + 1).css('color', '#dc3545');
+        }
+        // 用 ajax 向后端发送 post 请求
+        $.post(
+            url,
+            // post 只是为了做 csrf 校验，因此数据为空
+            {},
+            function(result) {
+                if (result === 'success') {
+                    // 尝试修改点赞数据
+                    try {
+                        storage_json_data[id] = true;
+                    } catch (e) {
+                        window.localStorage.clear();
+                    };
+
+                    const d = JSON.stringify(storage_json_data);
+                    // 尝试存储点赞数据到 LocalStorage
+                    try {
+                        storage.setItem("my_blog_data", d);
+                    } catch (e) {
+                        // code 22 错误表示 LocalStorage 空间满了
+                        if (e.code === 22) {
+                            window.localStorage.clear();
+                            storage.setItem("my_blog_data", d);
+                        }
+                    };
+                } else {
+                    layer.msg("与服务器通信失败..过一会儿再试试呗~");
+                }
+
+            }
+        );
+    };
+    // 辅助点赞主函数，验证点赞状态
+    function check_status(data, id) {
+        // 尝试查询点赞状态
+        try {
+            if (id in data && data[id]) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (e) {
+            window.localStorage.clear();
+            return false;
+        };
+    };
+</script>
+
+<!-- 粘性侧边栏 -->
+<script src="{% static 'sticky_sidebar/jquery.sticky-sidebar.min.js' %}"></script>
+<script type="text/javascript">
+    $('#sidebar').stickySidebar({
+        topSpacing: 20,
+        bottomSpacing: 20,
+    });
+</script>
+
+<!-- Ckeditor自适应 -->
 <script>
     $(".django-ckeditor-widget").removeAttr('style');
 </script>

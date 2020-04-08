@@ -9,7 +9,6 @@ from django.urls import reverse
 from taggit.managers import TaggableManager
 from PIL import Image
 from ckeditor.fields import RichTextField
-from ckeditor_uploader.fields import RichTextUploadingField
 
 class ArticleColumn(models.Model):
     """
@@ -34,7 +33,7 @@ class ArticlePost(models.Model):
     title = models.CharField(max_length=100)
 
     # 文章正文。保存大量文本使用 TextField
-    body = RichTextUploadingField()
+    body = RichTextField()
 
     # 文章创建时间。参数 default=timezone.now 指定其在创建数据时将默认写入当前的时间
     created = models.DateTimeField(default=timezone.now)
@@ -51,8 +50,10 @@ class ArticlePost(models.Model):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name='article'
+        related_name='article',
     )
+    # 文章点赞数
+    likes = models.PositiveIntegerField(default=0)
     class Meta:
             ordering = ('-created',)
     def __str__(self):
@@ -79,3 +80,12 @@ class ArticlePost(models.Model):
             resized_image.save(self.avatar.path)
 
         return article
+    def was_created_recently(self):
+        # 若文章是 1 分钟内发表的，则返回 True
+        diff = timezone.now() - self.created
+        
+        # if diff.days <= 0 and diff.seconds < 60:
+        if diff.days == 0 and diff.seconds >= 0 and diff.seconds < 60:
+            return True
+        else:
+            return False

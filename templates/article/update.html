@@ -55,17 +55,12 @@
                                value="{{ tags }}">
                     </div>
 
-                    <!-- 文章正文 -->
-                    <div class="form-group">
-                        <label for="body">文章正文</label>
-                        <!-- 文本域不需要 value 属性，直接在标签体中嵌入数据即可 -->
-                            {{ article_post_form.media }}
-                            <textarea name="body" cols="50" rows="80" class="ckeditor">
-                            <div class="col-12">
-                                <p>{{ article.body|safe}}</p>
-                            </div>
-                            </textarea>
-                    </div>
+                <!-- 文章正文 -->
+                <div class="form-group">
+                    <label for="body">文章正文</label>
+                    <!-- 文本域不需要 value 属性，直接在标签体中嵌入数据即可 -->
+                    <textarea type="text" class="form-control" id="body" name="body" rows="12">{{ article.body }}</textarea>
+                </div>
 
                     <!-- 提交按钮 -->
                     <button type="submit" class="btn btn-primary">完成</button>
@@ -74,9 +69,3 @@
         </div>
     </div>
 {% endblock content %}
-
-{% block script %}
-    <script>
-        $(".django-ckeditor-widget").removeAttr('style');
-    </script>
-{% endblock script %}

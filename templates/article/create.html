@@ -62,10 +62,14 @@
                     <div class="form-group">
                         <label for="body">文章正文</label>
                         <!-- 文本区域 -->
-                        <div>
-                            {{ article_post_form.media }}
-                            {{ article_post_form.body }}
-                        </div>
+                    <!-- 文本区域 -->
+                    <textarea type="text" 
+                              class="form-control" 
+                              id="body" 
+                              name="body" 
+                              rows="12"
+                    ></textarea>
+
                     </div>
                     <!-- 提交按钮 -->
                     <button type="submit" class="btn btn-primary">完成</button>
@@ -74,9 +78,3 @@
         </div>
     </div>
 {% endblock content %}
-
-{% block script %}
-    <script>
-        $(".django-ckeditor-widget").removeAttr('style');
-    </script>
-{% endblock script %}
