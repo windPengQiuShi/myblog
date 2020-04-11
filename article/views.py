@@ -16,6 +16,7 @@ from comment.forms import CommentForm
 from django.views import View
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView
+import re
 
 def article_list(request):
     # 从 url 中提取查询参数
@@ -96,7 +97,8 @@ def article_detail(request, id):
         'markdown.extensions.toc',
         ]
     )
-    article.body = md.convert(article.body)
+    transfer_body= transferMermaid(article.body)
+    article.body = md.convert(transfer_body)
     comment_form = CommentForm()
 
     # 需要传递给模板的对象
@@ -301,3 +303,17 @@ class ArticleCreateView(CreateView):
     # 或者有选择的提交字段，比如：
     # fields = ['title']
     template_name = 'article/create_by_class_view.html'
+
+
+before = "<body>\n" +"  <div class=\"mermaid\">";
+after =   "</div>\n" +  "  <script src=\"https://cdn.staticfile.org/mermaid/8.4.8/mermaid.min.js\"></script>\n" +  "  <script>mermaid.initialize({startOnLoad:true});</script>\n" + "</body>\n";
+def transferMermaid(md):
+    #查找```mermaid  ```的制定字符串
+    pattern = "```mermaid[\s\S]*?```"
+    match = re.compile(pattern).findall(md)
+    if match is not None:
+        newp1 = md.replace("```mermaid", before)
+        newp2 = newp1.replace("```", after)
+        return newp2;
+    return md
+
