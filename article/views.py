@@ -311,9 +311,12 @@ def transferMermaid(md):
     #查找```mermaid  ```的制定字符串
     pattern = "```mermaid[\s\S]*?```"
     match = re.compile(pattern).findall(md)
-    if match is not None:
-        newp1 = md.replace("```mermaid", before)
-        newp2 = newp1.replace("```", after)
-        return newp2;
+    if len(match):
+        list  = []
+        for para in match:
+            new_para1= para.replace("```mermaid", before)
+            new_para2 = new_para1.replace("```", after)
+            list.append(new_para2);
+        for i in range(len(list)):
+            md = md.replace(match[i], list[i])
     return md
-
